@@ -14,18 +14,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 
 def _make_settings(
-    backend: str = "openai",
+    backend: str = "groq",
     top_n: int = 5,
-    openai_key: str = "sk-test",
+    groq_key: str = "gsk-test",
     jina_key: str | None = None,
 ) -> MagicMock:
     settings = MagicMock()
     settings.reranker_backend = backend
     settings.reranker_top_n = top_n
-    # openai_api_key is a SecretStr-like mock
-    openai_secret = MagicMock()
-    openai_secret.get_secret_value.return_value = openai_key
-    settings.openai_api_key = openai_secret
+    # groq_api_key is a SecretStr-like mock
+    groq_secret = MagicMock()
+    groq_secret.get_secret_value.return_value = groq_key
+    settings.groq_api_key = groq_secret
+    settings.groq_llm_model = "openai/gpt-oss-120b"
     # jina_api_key
     if jina_key is not None:
         jina_secret = MagicMock()
@@ -65,12 +66,12 @@ def _make_image_candidate() -> dict:
 
 
 class TestGetReranker:
-    def test_returns_openai_reranker(self):
-        from doc_parser.retrieval.reranker import OpenAIReranker, get_reranker
+    def test_returns_groq_reranker(self):
+        from doc_parser.retrieval.reranker import GroqReranker, get_reranker
 
-        settings = _make_settings(backend="openai")
+        settings = _make_settings(backend="groq")
         reranker = get_reranker(settings)
-        assert isinstance(reranker, OpenAIReranker)
+        assert isinstance(reranker, GroqReranker)
 
     def test_returns_jina_reranker(self):
         from doc_parser.retrieval.reranker import JinaReranker, get_reranker
@@ -94,16 +95,16 @@ class TestGetReranker:
             JinaReranker(settings)
 
 
-# ── OpenAI backend ────────────────────────────────────────────────────────────
+# ── Groq backend ──────────────────────────────────────────────────────────────
 
 
-class TestOpenAIReranker:
+class TestGroqReranker:
     @pytest.mark.asyncio
     async def test_rerank_returns_top_n(self):
         """rerank() should return at most top_n items."""
-        from doc_parser.retrieval.reranker import OpenAIReranker
+        from doc_parser.retrieval.reranker import GroqReranker
 
-        settings = _make_settings(backend="openai")
+        settings = _make_settings(backend="groq")
 
         mock_choice = MagicMock()
         mock_choice.message.content = "8"
@@ -115,7 +116,7 @@ class TestOpenAIReranker:
             mock_openai.chat.completions.create = AsyncMock(return_value=mock_response)
             mock_cls.return_value = mock_openai
 
-            reranker = OpenAIReranker(settings)
+            reranker = GroqReranker(settings)
             candidates = _make_candidates(n=6)
             result = await reranker.rerank("attention mechanism", candidates, top_n=3)
 
@@ -124,9 +125,9 @@ class TestOpenAIReranker:
     @pytest.mark.asyncio
     async def test_rerank_adds_score_field(self):
         """Each result must include 'rerank_score'."""
-        from doc_parser.retrieval.reranker import OpenAIReranker
+        from doc_parser.retrieval.reranker import GroqReranker
 
-        settings = _make_settings(backend="openai")
+        settings = _make_settings(backend="groq")
 
         mock_choice = MagicMock()
         mock_choice.message.content = "7"
@@ -138,7 +139,7 @@ class TestOpenAIReranker:
             mock_openai.chat.completions.create = AsyncMock(return_value=mock_response)
             mock_cls.return_value = mock_openai
 
-            reranker = OpenAIReranker(settings)
+            reranker = GroqReranker(settings)
             candidates = _make_candidates(n=2)
             result = await reranker.rerank("query", candidates, top_n=5)
 
@@ -149,9 +150,9 @@ class TestOpenAIReranker:
     @pytest.mark.asyncio
     async def test_rerank_sorted_descending(self):
         """Results must be sorted highest score first."""
-        from doc_parser.retrieval.reranker import OpenAIReranker
+        from doc_parser.retrieval.reranker import GroqReranker
 
-        settings = _make_settings(backend="openai")
+        settings = _make_settings(backend="groq")
         scores = ["3", "9", "5"]
 
         mock_responses = []
@@ -167,7 +168,7 @@ class TestOpenAIReranker:
             mock_openai.chat.completions.create = AsyncMock(side_effect=mock_responses)
             mock_cls.return_value = mock_openai
 
-            reranker = OpenAIReranker(settings)
+            reranker = GroqReranker(settings)
             candidates = _make_candidates(n=3)
             result = await reranker.rerank("query", candidates, top_n=3)
 
@@ -177,9 +178,9 @@ class TestOpenAIReranker:
     @pytest.mark.asyncio
     async def test_image_chunk_uses_vision_message(self):
         """Image chunks must trigger a vision message (content is a list)."""
-        from doc_parser.retrieval.reranker import OpenAIReranker
+        from doc_parser.retrieval.reranker import GroqReranker
 
-        settings = _make_settings(backend="openai")
+        settings = _make_settings(backend="groq")
 
         captured_messages: list = []
 
@@ -196,7 +197,7 @@ class TestOpenAIReranker:
             mock_openai.chat.completions.create = fake_create
             mock_cls.return_value = mock_openai
 
-            reranker = OpenAIReranker(settings)
+            reranker = GroqReranker(settings)
             img = _make_image_candidate()
             await reranker.rerank("bar chart accuracy", [img], top_n=1)
 
@@ -209,10 +210,10 @@ class TestOpenAIReranker:
 
     @pytest.mark.asyncio
     async def test_unparseable_score_defaults_to_zero(self):
-        """If OpenAI returns non-numeric text, score should fall back to 0."""
-        from doc_parser.retrieval.reranker import OpenAIReranker
+        """If Groq returns non-numeric text, score should fall back to 0."""
+        from doc_parser.retrieval.reranker import GroqReranker
 
-        settings = _make_settings(backend="openai")
+        settings = _make_settings(backend="groq")
 
         mock_choice = MagicMock()
         mock_choice.message.content = "not-a-number"
@@ -224,7 +225,7 @@ class TestOpenAIReranker:
             mock_openai.chat.completions.create = AsyncMock(return_value=mock_response)
             mock_cls.return_value = mock_openai
 
-            reranker = OpenAIReranker(settings)
+            reranker = GroqReranker(settings)
             candidates = _make_candidates(n=1)
             result = await reranker.rerank("query", candidates, top_n=1)
 

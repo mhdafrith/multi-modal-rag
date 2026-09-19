@@ -96,10 +96,13 @@ async def _ingest_file(
     from openai import AsyncOpenAI
 
     settings = get_settings()
-    openai_key = (
-        settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
+    groq_key = (
+        settings.groq_api_key.get_secret_value() if settings.groq_api_key else None
     )
-    openai_client = AsyncOpenAI(api_key=openai_key)
+    groq_client = AsyncOpenAI(
+        api_key=groq_key,
+        base_url="https://api.groq.com/openai/v1",
+    )
     embedder = get_embedder(settings)
 
     task = progress.add_task(f"[cyan]{file_path.name}[/cyan]", total=None)
@@ -126,7 +129,7 @@ async def _ingest_file(
         all_chunks = await enrich_image_chunks(
             chunks=all_chunks,
             pdf_path=file_path,
-            client=openai_client,
+            client=groq_client,
         )
 
     # Step 4: Embed (dense + sparse)

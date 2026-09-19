@@ -8,7 +8,7 @@ from loguru import logger
 
 from doc_parser.api.dependencies import (
     get_embedder_dep,
-    get_openai_client,
+    get_groq_client,
     get_reranker_dep,
     get_store,
 )
@@ -37,7 +37,7 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
     store = get_store()
     embedder = get_embedder_dep()
     reranker = get_reranker_dep()
-    client = get_openai_client()
+    client = get_groq_client()
 
     top_n = req.top_n if req.top_n is not None else settings.reranker_top_n
 
@@ -90,7 +90,7 @@ async def generate(req: GenerateRequest) -> GenerateResponse:
 
     try:
         completion = await client.chat.completions.create(
-            model=settings.openai_llm_model,
+            model=settings.groq_llm_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {req.query}"},

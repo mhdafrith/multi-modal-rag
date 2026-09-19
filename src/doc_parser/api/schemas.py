@@ -75,7 +75,7 @@ class HealthResponse(BaseModel):
 
     status: str
     qdrant: str
-    openai: str
+    groq: str
     reranker_backend: str
 
 

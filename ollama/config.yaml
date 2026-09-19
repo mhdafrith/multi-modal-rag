@@ -8,6 +8,11 @@ pipeline:
     api_path: /api/generate   # Ollama's native endpoint (NOT the OpenAI-compat one)
     model: glm-ocr:latest     # Must match what you pulled
     api_mode: ollama_generate  # Essential — prevents 502 errors
+    request_timeout: 300       # Longer timeout for Apple Silicon OCR
+
+  # Ollama on MacBook Air can only serve 1 request at a time.
+  # Default 16 workers causes all requests to queue up and timeout.
+  max_workers: 1
 
   enable_layout: true         # PP-DocLayout-V3 layout detection
                               # Requires: uv pip install "glmocr[layout]"
@@ -59,3 +64,8 @@ pipeline:
 
   page_loader:
     max_tokens: 8192
+    task_prompt_mapping:
+      ocr: "OCR this image and return the text content."
+      table: "OCR this table image and return the content in markdown table format."
+      formula: "OCR this formula image and return the LaTeX representation."
+      algorithm: "OCR this algorithm image and return the content."

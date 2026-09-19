@@ -1,6 +1,6 @@
 """End-to-end ingestion integration test.
 
-Skipped unless both Z_AI_API_KEY and OPENAI_API_KEY are set in the environment.
+Skipped unless Z_AI_API_KEY, GROQ_API_KEY, and NVIDIA_API_KEY are set in the environment.
 Requires a running Qdrant instance (local Docker or in-memory via qdrant-client).
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 # ── skip markers ──────────────────────────────────────────────────────────────
 
 _MISSING_KEYS: list[str] = [
-    k for k in ("Z_AI_API_KEY", "OPENAI_API_KEY") if not os.environ.get(k)
+    k for k in ("Z_AI_API_KEY", "GROQ_API_KEY", "NVIDIA_API_KEY") if not os.environ.get(k)
 ]
 pytestmark = pytest.mark.integration
 

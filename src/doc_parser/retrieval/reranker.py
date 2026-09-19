@@ -8,7 +8,7 @@ Pipeline position:
     LLM generation
 
 Supported backends (controlled by ``RERANKER_BACKEND`` env var):
-    - ``openai``  – GPT-4o-mini as async cross-encoder (default, no extra deps)
+    - ``groq``    – Groq LLM as async cross-encoder (default, no extra deps)
     - ``jina``    – Jina Reranker M0 cloud API (multimodal, needs JINA_API_KEY)
     - ``bge``     – BAAI/bge-reranker-v2-minicpm-layerwise (local, fast, text-only)
     - ``qwen``    – Qwen3-VL-Reranker-2B (local, multimodal, heavier)
@@ -62,17 +62,17 @@ class BaseReranker(ABC):
         """
 
 
-# ── OpenAI backend ────────────────────────────────────────────────────────────
+# ── Groq backend ──────────────────────────────────────────────────────────────
 
 
-class OpenAIReranker(BaseReranker):
-    """Re-rank using GPT-4o-mini as an async cross-encoder.
+class GroqReranker(BaseReranker):
+    """Re-rank using Groq LLM as an async cross-encoder.
 
     Scores each (query, chunk) pair via a short prompt, firing all candidates
     in parallel with ``asyncio.gather``.  Image chunks pass ``image_base64``
     inline as a vision message.  Text-only chunks use a text-only message.
 
-    Cost: ~$0.03–0.10 per re-rank call (20 candidates).
+    Cost: depends on Groq pricing.
     Latency: ~800ms–2s (parallel async).
     """
 
@@ -84,10 +84,13 @@ class OpenAIReranker(BaseReranker):
 
     def __init__(self, settings: "Settings") -> None:
         api_key = (
-            settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
+            settings.groq_api_key.get_secret_value() if settings.groq_api_key else None
         )
-        self._client = AsyncOpenAI(api_key=api_key)
-        self._model = "gpt-4o-mini"
+        self._client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+        self._model = settings.groq_llm_model
 
     async def _score_one(self, query: str, candidate: dict[str, Any]) -> float:
         """Return a relevance score in [1, 10] for one candidate."""
@@ -130,10 +133,10 @@ class OpenAIReranker(BaseReranker):
             raw = (response.choices[0].message.content or "").strip()
             return float(raw)
         except (ValueError, IndexError):
-            logger.warning("Could not parse score from OpenAI response: %r", raw)
+            logger.warning("Could not parse score from Groq response: %r", raw)
             return 0.0
         except Exception as exc:
-            logger.error("OpenAI scoring failed for chunk: %s", exc)
+            logger.error("Groq scoring failed for chunk: %s", exc)
             return 0.0
 
     async def rerank(
@@ -380,7 +383,7 @@ class QwenVLReranker(BaseReranker):
 # ── Factory ───────────────────────────────────────────────────────────────────
 
 _BACKENDS: dict[str, type[BaseReranker]] = {
-    "openai": OpenAIReranker,
+    "groq": GroqReranker,
     "jina": JinaReranker,
     "bge": BGEReranker,
     "qwen": QwenVLReranker,
@@ -392,7 +395,7 @@ def get_reranker(settings: "Settings") -> BaseReranker:
 
     Args:
         settings: Application settings.  ``settings.reranker_backend`` must be
-            one of ``"openai"``, ``"jina"``, ``"bge"``, or ``"qwen"``.
+            one of ``"groq"``, ``"jina"``, ``"bge"``, or ``"qwen"``.
 
     Returns:
         A :class:`BaseReranker` instance ready to call :meth:`~BaseReranker.rerank`.

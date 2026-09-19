@@ -1,4 +1,4 @@
-"""Embedder: dense text embeddings (OpenAI/Gemini) + BM25 sparse vectors (feature hashing)."""
+"""Embedder: dense text embeddings (NVIDIA/Gemini) + BM25 sparse vectors (feature hashing)."""
 from __future__ import annotations
 
 import asyncio
@@ -37,26 +37,26 @@ def _tokenize(text: str) -> list[str]:
 async def embed_texts(
     texts: list[str],
     client: AsyncOpenAI,
-    model: str = "text-embedding-3-large",
-    dimensions: int = 3072,
+    model: str = "nvidia/nemotron-3-embed-1b",
+    dimensions: int = 2048,
     batch_size: int = 100,
 ) -> list[list[float]]:
-    """Embed texts using the OpenAI embeddings API.
+    """Embed texts using an OpenAI-compatible embeddings API (e.g. NVIDIA).
 
     Empty strings are replaced with "[empty]" because the API rejects blank inputs.
     Results are returned in the same order as the input list.
 
     Args:
         texts: Input texts to embed.
-        client: Authenticated AsyncOpenAI client.
+        client: Authenticated AsyncOpenAI client (pointed at NVIDIA or similar).
         model: Embedding model name.
-        dimensions: Output dimensionality (SDK v2 supports truncation).
-        batch_size: Maximum texts per API request (OpenAI limit is 2048 inputs).
+        dimensions: Expected output dimensionality (informational; not sent to API).
+        batch_size: Maximum texts per API request.
 
     Returns:
         List of float vectors, one per input text, in input order.
     """
-    # Sanitise: OpenAI rejects empty strings
+    # Sanitise: API rejects empty strings
     sanitised = [t if t.strip() else "[empty]" for t in texts]
 
     all_embeddings: list[list[float]] = []
@@ -65,7 +65,6 @@ async def embed_texts(
         response = await client.embeddings.create(
             model=model,
             input=batch,
-            dimensions=dimensions,
         )
         # API guarantees order is preserved
         all_embeddings.extend(item.embedding for item in response.data)
@@ -130,12 +129,15 @@ class BaseEmbedder(ABC):
         """Return one float vector per text, in input order."""
 
 
-class OpenAIEmbedder(BaseEmbedder):
-    """Embedder backed by the OpenAI embeddings API."""
+class NvidiaEmbedder(BaseEmbedder):
+    """Embedder backed by the NVIDIA embeddings API (OpenAI-compatible)."""
 
     def __init__(self, settings: "Settings") -> None:
-        api_key = settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
-        self._client = AsyncOpenAI(api_key=api_key)
+        api_key = settings.nvidia_api_key.get_secret_value() if settings.nvidia_api_key else None
+        self._client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://integrate.api.nvidia.com/v1",
+        )
         self._model = settings.embedding_model
         self._dimensions = settings.embedding_dimensions
 
@@ -169,7 +171,7 @@ class GeminiEmbedder(BaseEmbedder):
         return await loop.run_in_executor(None, self._embed_sync, texts)
 
 
-_PROVIDERS: dict[str, type[BaseEmbedder]] = {"openai": OpenAIEmbedder, "gemini": GeminiEmbedder}
+_PROVIDERS: dict[str, type[BaseEmbedder]] = {"nvidia": NvidiaEmbedder, "gemini": GeminiEmbedder}
 
 
 def get_embedder(settings: "Settings") -> BaseEmbedder:
