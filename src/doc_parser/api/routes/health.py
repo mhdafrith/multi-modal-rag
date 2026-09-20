@@ -3,9 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from loguru import logger
-from openai import AsyncOpenAI
-
-from doc_parser.api.dependencies import get_openai_client, get_store
+from doc_parser.api.dependencies import get_nvidia_client, get_store
 from doc_parser.api.schemas import CollectionsResponse, DeleteCollectionResponse, HealthResponse
 from doc_parser.config import get_settings
 
@@ -14,10 +12,10 @@ router = APIRouter()
 
 @router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    """Ping Qdrant and OpenAI to verify connectivity."""
+    """Ping Qdrant and the embedding provider to verify connectivity."""
     settings = get_settings()
     store = get_store()
-    client: AsyncOpenAI = get_openai_client()
+    nvidia_client = get_nvidia_client()
     reranker_backend = settings.reranker_backend
 
     # Check Qdrant
@@ -29,24 +27,23 @@ async def health() -> HealthResponse:
         logger.warning("Qdrant health check failed: {}", exc)
         qdrant_status = f"error: {exc}"
 
-    # Check OpenAI (small embedding call)
-    openai_status: str
+    # Check embedding provider (small embedding call via NVIDIA)
+    llm_status: str
     try:
-        await client.embeddings.create(
+        await nvidia_client.embeddings.create(
             model=settings.embedding_model,
             input=["ping"],
-            dimensions=8,
         )
-        openai_status = "ok"
+        llm_status = "ok"
     except Exception as exc:
-        logger.warning("OpenAI health check failed: {}", exc)
-        openai_status = f"error: {exc}"
+        logger.warning("Embedding health check failed: {}", exc)
+        llm_status = f"error: {exc}"
 
-    overall = "ok" if qdrant_status == "ok" and openai_status == "ok" else "degraded"
+    overall = "ok" if qdrant_status == "ok" and llm_status == "ok" else "degraded"
     return HealthResponse(
         status=overall,
         qdrant=qdrant_status,
-        openai=openai_status,
+        llm=llm_status,
         reranker_backend=reranker_backend,
     )
 

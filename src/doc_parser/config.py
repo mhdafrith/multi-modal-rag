@@ -23,14 +23,17 @@ class Settings(BaseSettings):
     output_dir: str = "./output"
     config_yaml_path: str = "config.yaml"
 
-    # OpenAI
-    openai_api_key: SecretStr | None = None
-    openai_llm_model: str = "gpt-4o"
+    # Groq (LLM — OpenAI-compatible API)
+    groq_api_key: SecretStr | None = None
+    groq_llm_model: str = "openai/gpt-oss-120b"
+
+    # NVIDIA (Embeddings — OpenAI-compatible API)
+    nvidia_api_key: SecretStr | None = None
 
     # Embedding (provider-agnostic)
-    embedding_provider: str = "openai"  # "openai" | "gemini"
-    embedding_model: str = "text-embedding-3-large"
-    embedding_dimensions: int = 3072
+    embedding_provider: str = "nvidia"  # "nvidia" | "gemini"
+    embedding_model: str = "nvidia/nemotron-3-embed-1b"
+    embedding_dimensions: int = 2048
     gemini_api_key: SecretStr | None = None
 
     # Qdrant

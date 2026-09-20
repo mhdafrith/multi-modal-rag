@@ -12,7 +12,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from loguru import logger
 from qdrant_client.models import SparseVector
 
-from doc_parser.api.dependencies import get_embedder_dep, get_openai_client, get_store
+from doc_parser.api.dependencies import get_embedder_dep, get_groq_client, get_store
 from doc_parser.api.schemas import IngestRequest, IngestResponse
 from doc_parser.chunker import Chunk, document_aware_chunking
 from doc_parser.config import get_settings
@@ -83,7 +83,7 @@ async def _run_ingest(
             ``pdf_path.name`` when not provided.
     """
     settings = get_settings()
-    client = get_openai_client()
+    client = get_groq_client()
     embedder = get_embedder_dep()
     store = get_store()
 
@@ -123,7 +123,7 @@ async def _run_ingest(
             chunks,
             pdf_path=pdf_path,
             client=client,
-            model=settings.openai_llm_model,
+            model=settings.groq_llm_model,
         )
 
     # 4. Embed

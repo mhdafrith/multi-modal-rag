@@ -83,10 +83,13 @@ class OpenAIReranker(BaseReranker):
 
     def __init__(self, settings: Settings) -> None:
         api_key = (
-            settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
+            settings.groq_api_key.get_secret_value() if settings.groq_api_key else None
         )
-        self._client = AsyncOpenAI(api_key=api_key)
-        self._model = "gpt-4o-mini"
+        self._client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+        self._model = settings.groq_llm_model
 
     async def _score_one(self, query: str, candidate: dict[str, Any]) -> float:
         """Return a relevance score in [1, 10] for one candidate."""

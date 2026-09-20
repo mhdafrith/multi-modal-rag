@@ -12,11 +12,25 @@ from doc_parser.retrieval.reranker import BaseReranker, get_reranker
 
 
 @lru_cache
-def get_openai_client() -> AsyncOpenAI:
-    """Return a cached AsyncOpenAI client."""
+def get_groq_client() -> AsyncOpenAI:
+    """Return a cached AsyncOpenAI client pointed at the Groq API."""
     settings = get_settings()
-    api_key = settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
-    return AsyncOpenAI(api_key=api_key)
+    api_key = settings.groq_api_key.get_secret_value() if settings.groq_api_key else None
+    return AsyncOpenAI(
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1",
+    )
+
+
+@lru_cache
+def get_nvidia_client() -> AsyncOpenAI:
+    """Return a cached AsyncOpenAI client pointed at the NVIDIA API."""
+    settings = get_settings()
+    api_key = settings.nvidia_api_key.get_secret_value() if settings.nvidia_api_key else None
+    return AsyncOpenAI(
+        api_key=api_key,
+        base_url="https://integrate.api.nvidia.com/v1",
+    )
 
 
 @lru_cache
