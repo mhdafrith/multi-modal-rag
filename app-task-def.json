@@ -4,16 +4,16 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "2048",
   "memory": "16384",
-  "executionRoleArn": "arn:aws:iam::685057748560:role/doc-parser-admin-ecs-task-execution",
-  "taskRoleArn": "arn:aws:iam::685057748560:role/doc-parser-admin-ecs-task-execution",
+  "executionRoleArn": "arn:aws:iam::025881992438:role/doc-parser-ecs-task-execution",
+  "taskRoleArn": "arn:aws:iam::025881992438:role/doc-parser-ecs-task-execution",
   "volumes": [
     {
       "name": "qdrant-data",
       "efsVolumeConfiguration": {
-        "fileSystemId": "fs-014e64c31341e0b01",
+        "fileSystemId": "fs-03d9495d487f6161a",
         "transitEncryption": "ENABLED",
         "authorizationConfig": {
-          "accessPointId": "fsap-07dc6c3c58c946d74",
+          "accessPointId": "fsap-0050f312bdcc7ed96",
           "iam": "ENABLED"
         }
       }
@@ -21,10 +21,10 @@
     {
       "name": "ollama-models",
       "efsVolumeConfiguration": {
-        "fileSystemId": "fs-014e64c31341e0b01",
+        "fileSystemId": "fs-03d9495d487f6161a",
         "transitEncryption": "ENABLED",
         "authorizationConfig": {
-          "accessPointId": "fsap-0aa3e68920b4c63ea",
+          "accessPointId": "fsap-01d8ac295faaf4090",
           "iam": "ENABLED"
         }
       }
@@ -33,21 +33,30 @@
   "containerDefinitions": [
     {
       "name": "app",
-      "image": "685057748560.dkr.ecr.us-east-1.amazonaws.com/doc-parser/app:latest",
+      "image": "025881992438.dkr.ecr.us-east-1.amazonaws.com/doc-parser/app:latest",
       "portMappings": [{"containerPort": 8000, "protocol": "tcp"}],
       "essential": true,
       "environment": [
-        {"name": "EMBEDDING_PROVIDER",  "value": "openai"},
-        {"name": "RERANKER_BACKEND",    "value": "openai"},
+        {"name": "EMBEDDING_PROVIDER",  "value": "nvidia"},
+        {"name": "RERANKER_BACKEND",    "value": "jina"},
         {"name": "QDRANT_URL",          "value": "http://localhost:6333"},
         {"name": "PARSER_BACKEND",      "value": "ollama"},
         {"name": "OLLAMA_BASE_URL",     "value": "http://localhost:11434"}
       ],
       "secrets": [
         {
-          "name": "OPENAI_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:685057748560:secret:doc-parser/openai-api-key:OPENAI_API_KEY::"
+          "name": "GROQ_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/groq-api-key:GROQ_API_KEY::"
+        },
+        {
+          "name": "NVIDIA_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/nvidia-api-key:NVIDIA_API_KEY::"
+        },
+        {
+          "name": "JINA_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/jina-api-key:JINA_API_KEY::"
         }
+
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
