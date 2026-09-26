@@ -53,4 +53,4 @@ print("\n=== PROBING COMMON KEYS ===")
 for key in ["pages", "results", "data", "content", "items", "blocks", "layout", "text", "markdown"]:
     val = getattr(raw, key, "<<NOT FOUND>>")
     if val != "<<NOT FOUND>>":
-        print(f"  rraw.{key} = {repr(val)[:200]}")
+        print(f"  raw.{key} = {repr(val)[:200]}")
