@@ -63,7 +63,7 @@
         "options": {
           "awslogs-group":         "/ecs/doc-parser-app-superadmin",
           "awslogs-region":        "us-east-1",
-          "awslogs-stream-prefix": "app"
+          "awslogs-stream-prefix": "ecs"
         }
       },
       "healthCheck": {
