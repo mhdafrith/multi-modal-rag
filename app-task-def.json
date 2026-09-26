@@ -46,15 +46,15 @@
       "secrets": [
         {
           "name": "GROQ_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/groq-api-key"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/groq-api-key-MTqBVm"
         },
         {
           "name": "NVIDIA_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/nvidia-api-key"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/nvidia-api-key-ej16tP"
         },
         {
           "name": "JINA_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/jina-api-key"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:025881992438:secret:doc-parser/jina-api-key-hfKvIX"
         }
 
       ],
