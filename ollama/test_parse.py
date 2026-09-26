@@ -137,7 +137,7 @@ def main() -> int:
             json_path.write_text(
                 json.dumps(pages, indent=2, ensure_ascii=False), encoding="utf-8"
             )
-            print(f"Saved JSON     : {json_path}")
+            print(f"Saved JSON --    : {json_path}")
 
     return 0
 
