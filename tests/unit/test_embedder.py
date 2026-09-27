@@ -18,15 +18,15 @@ class TestEmbedTexts:
     async def test_returns_one_vector_per_text(self):
         from doc_parser.ingestion.embedder import embed_texts
 
-        async def fake_create(model, input, dimensions):  # noqa: A002
+        async def fake_create(model, input):  # noqa: A002
             return MagicMock(
-                data=[MagicMock(embedding=[0.1] * dimensions) for _ in input]
+                data=[MagicMock(embedding=[0.1] * 4) for _ in input]
             )
 
         client = AsyncMock()
         client.embeddings.create = fake_create
 
-        result = await embed_texts(["hello", "world"], client, model="m", dimensions=4)
+        result = await embed_texts(["hello", "world"], client, model="m")
         assert len(result) == 2
         assert len(result[0]) == 4
 
@@ -38,12 +38,12 @@ class TestEmbedTexts:
         texts = [f"text_{i}" for i in range(7)]
         call_counter = [0]
 
-        async def fake_create(model, input, dimensions):  # noqa: A002
+        async def fake_create(model, input):  # noqa: A002
             batch_idx = call_counter[0]
             call_counter[0] += 1
             return MagicMock(
                 data=[
-                    MagicMock(embedding=[float(batch_idx * 100 + j)] * dimensions)
+                    MagicMock(embedding=[float(batch_idx * 100 + j)] * 2)
                     for j in range(len(input))
                 ]
             )
@@ -51,7 +51,7 @@ class TestEmbedTexts:
         client = AsyncMock()
         client.embeddings.create = fake_create
 
-        result = await embed_texts(texts, client, model="m", dimensions=2, batch_size=3)
+        result = await embed_texts(texts, client, model="m", batch_size=3)
         assert len(result) == 7
         # Batch 0 → indices 0..2 start with 0.0; batch 1 → indices 3..5 start with 100.0
         assert result[0][0] == 0.0
@@ -65,14 +65,14 @@ class TestEmbedTexts:
 
         captured_inputs: list[list[str]] = []
 
-        async def fake_create(model, input, dimensions):  # noqa: A002
+        async def fake_create(model, input):  # noqa: A002
             captured_inputs.append(list(input))
-            return MagicMock(data=[MagicMock(embedding=[0.0] * dimensions)])
+            return MagicMock(data=[MagicMock(embedding=[0.0] * 2)])
 
         client = AsyncMock()
         client.embeddings.create = fake_create
 
-        await embed_texts([""], client, model="m", dimensions=2)
+        await embed_texts([""], client, model="m")
         assert captured_inputs[0][0] == "[empty]"
 
     @pytest.mark.asyncio
@@ -82,14 +82,14 @@ class TestEmbedTexts:
 
         captured_inputs: list[list[str]] = []
 
-        async def fake_create(model, input, dimensions):  # noqa: A002
+        async def fake_create(model, input):  # noqa: A002
             captured_inputs.append(list(input))
-            return MagicMock(data=[MagicMock(embedding=[0.0] * dimensions)])
+            return MagicMock(data=[MagicMock(embedding=[0.0] * 2)])
 
         client = AsyncMock()
         client.embeddings.create = fake_create
 
-        await embed_texts(["   "], client, model="m", dimensions=2)
+        await embed_texts(["   "], client, model="m")
         assert captured_inputs[0][0] == "[empty]"
 
     @pytest.mark.asyncio
@@ -99,16 +99,16 @@ class TestEmbedTexts:
         texts = ["t"] * 10
         call_count = [0]
 
-        async def fake_create(model, input, dimensions):  # noqa: A002
+        async def fake_create(model, input):  # noqa: A002
             call_count[0] += 1
             return MagicMock(
-                data=[MagicMock(embedding=[0.0] * dimensions) for _ in input]
+                data=[MagicMock(embedding=[0.0] * 2) for _ in input]
             )
 
         client = AsyncMock()
         client.embeddings.create = fake_create
 
-        await embed_texts(texts, client, model="m", dimensions=2, batch_size=3)
+        await embed_texts(texts, client, model="m", batch_size=3)
         # ceil(10 / 3) = 4 batches
         assert call_count[0] == 4
 
@@ -187,31 +187,30 @@ class TestComputeSparseVectors:
         assert idx_to_val[apple_idx] > idx_to_val[banana_idx]
 
 
-# ── OpenAIEmbedder ────────────────────────────────────────────────────────────
+# ── NvidiaEmbedder ────────────────────────────────────────────────────────────
 
 
-class TestOpenAIEmbedder:
+class TestNvidiaEmbedder:
     @pytest.mark.asyncio
-    async def test_embed_delegates_to_embed_texts_with_correct_model_and_dims(self):
-        """OpenAIEmbedder.embed() should call embed_texts with the configured model and dims."""
+    async def test_embed_delegates_to_embed_texts_with_correct_model(self):
+        """NvidiaEmbedder.embed() should call embed_texts with the configured model."""
         from unittest.mock import AsyncMock, MagicMock, patch
 
-        from doc_parser.ingestion.embedder import OpenAIEmbedder
+        from doc_parser.ingestion.embedder import NvidiaEmbedder
 
         settings = MagicMock()
-        settings.openai_api_key = None
-        settings.embedding_model = "text-embedding-3-small"
-        settings.embedding_dimensions = 1536
+        settings.nvidia_api_key = None
+        settings.embedding_model = "nvidia/nemotron-3-embed-1b"
 
-        fake_result = [[0.1] * 1536, [0.2] * 1536]
+        fake_result = [[0.1] * 2048, [0.2] * 2048]
         with patch("doc_parser.ingestion.embedder.AsyncOpenAI", return_value=MagicMock()):
             with patch(
                 "doc_parser.ingestion.embedder.embed_texts", new=AsyncMock(return_value=fake_result)
             ) as mock_et:
-                embedder = OpenAIEmbedder(settings)
+                embedder = NvidiaEmbedder(settings)
                 result = await embedder.embed(["hello", "world"])
 
-        mock_et.assert_called_once_with(["hello", "world"], embedder._client, "text-embedding-3-small", 1536)
+        mock_et.assert_called_once_with(["hello", "world"], embedder._client, "nvidia/nemotron-3-embed-1b")
         assert result == fake_result
 
 
@@ -313,21 +312,20 @@ class TestGeminiEmbedder:
 
 
 class TestGetEmbedder:
-    def test_returns_openai_embedder_for_openai_provider(self):
-        """get_embedder returns OpenAIEmbedder when embedding_provider='openai'."""
+    def test_returns_nvidia_embedder_for_nvidia_provider(self):
+        """get_embedder returns NvidiaEmbedder when embedding_provider='nvidia'."""
         from unittest.mock import MagicMock, patch
 
-        from doc_parser.ingestion.embedder import OpenAIEmbedder, get_embedder
+        from doc_parser.ingestion.embedder import NvidiaEmbedder, get_embedder
 
         settings = MagicMock()
-        settings.embedding_provider = "openai"
-        settings.openai_api_key = None
-        settings.embedding_model = "text-embedding-3-large"
-        settings.embedding_dimensions = 3072
+        settings.embedding_provider = "nvidia"
+        settings.nvidia_api_key = None
+        settings.embedding_model = "nvidia/nemotron-3-embed-1b"
 
         with patch("doc_parser.ingestion.embedder.AsyncOpenAI", return_value=MagicMock()):
             result = get_embedder(settings)
-        assert isinstance(result, OpenAIEmbedder)
+        assert isinstance(result, NvidiaEmbedder)
 
     def test_returns_gemini_embedder_for_gemini_provider(self):
         """get_embedder returns GeminiEmbedder when embedding_provider='gemini' and key is set."""

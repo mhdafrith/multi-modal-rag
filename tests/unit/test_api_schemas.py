@@ -143,7 +143,7 @@ def test_ingest_response() -> None:
 
 
 def test_health_response_ok() -> None:
-    resp = HealthResponse(status="ok", qdrant="ok", openai="ok", reranker_backend="openai")
+    resp = HealthResponse(status="ok", qdrant="ok", llm="ok", reranker_backend="openai")
     assert resp.status == "ok"
 
 
@@ -151,7 +151,7 @@ def test_health_response_degraded() -> None:
     resp = HealthResponse(
         status="degraded",
         qdrant="error: connection refused",
-        openai="ok",
+        llm="ok",
         reranker_backend="bge",
     )
     assert resp.status == "degraded"

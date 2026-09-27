@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from loguru import logger
+
 from doc_parser.api.dependencies import get_nvidia_client, get_store
 from doc_parser.api.schemas import CollectionsResponse, DeleteCollectionResponse, HealthResponse
 from doc_parser.config import get_settings
